@@ -1,12 +1,6 @@
 # react-native-fractions
 
-Native **stacked fractions** for React Native — numerator over denominator with a horizontal rule, laid out by the platform text engine (iOS `NSTextAttachment`, Android `ReplacementSpan`). Fractions wrap and align with surrounding text exactly like normal characters do.
-
-```
-                    3
- The answer is   ─── metres.
-                    4
-```
+Native **stacked fractions** for React Native — numerator over denominator with a horizontal rule, laid out by the platform text engine (iOS `NSTextAttachment`, Android `ReplacementSpan`). Each fraction is a single inline glyph: it uses your font, wraps with the rest of the line, and sits on the text baseline like ordinary characters.
 
 ## Why this library
 
