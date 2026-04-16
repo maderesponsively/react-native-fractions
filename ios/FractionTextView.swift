@@ -30,6 +30,9 @@ public class FractionTextView: UIView {
   @objc public var textAlign: NSString? {
     didSet { setNeedsRebuild() }
   }
+  @objc public var barThickness: NSNumber? {
+    didSet { setNeedsRebuild() }
+  }
   @objc public var onContentSizeChange: RCTDirectEventBlock?
 
   public override init(frame: CGRect) {
@@ -122,11 +125,14 @@ public class FractionTextView: UIView {
       } else if type == "fraction" {
         let numerator = dict["numerator"] as? String ?? ""
         let denominator = dict["denominator"] as? String ?? ""
+        let overrideBarWidth: CGFloat? =
+          barThickness.map { CGFloat(truncating: $0) }
         let attachment = FractionAttachment(
           numerator: numerator,
           denominator: denominator,
           font: font,
-          color: textColor
+          color: textColor,
+          overrideBarWidth: overrideBarWidth
         )
         let attr = NSMutableAttributedString(attachment: attachment)
         attr.addAttributes(

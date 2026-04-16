@@ -27,6 +27,7 @@ class FractionTextView(context: Context) : AppCompatTextView(context) {
   private var fontWeightStr: String? = null
   private var resolvedFontWeight: Int = 400
   private var resolvedTypeface: Typeface? = null
+  private var barThicknessDp: Double? = null
   private var dirty = true
   private var lastReportedWidthDp = -1.0
   private var lastReportedHeightDp = -1.0
@@ -74,6 +75,12 @@ class FractionTextView(context: Context) : AppCompatTextView(context) {
   fun setFontWeightStr(weight: String?) {
     fontWeightStr = weight
     applyTypeface()
+    dirty = true
+    requestRebuild()
+  }
+
+  fun setBarThicknessDp(value: Double?) {
+    barThicknessDp = value
     dirty = true
     requestRebuild()
   }
@@ -210,6 +217,10 @@ class FractionTextView(context: Context) : AppCompatTextView(context) {
           val den = map.getString("denominator") ?: ""
           val start = builder.length
           builder.append("\uFFFC")
+          val density = resources.displayMetrics.density
+          val barPxOverride: Float? = barThicknessDp
+            ?.takeIf { it > 0.0 }
+            ?.let { (it * density).toFloat() }
           val span = FractionSpan(
             numerator = num,
             denominator = den,
@@ -217,6 +228,7 @@ class FractionTextView(context: Context) : AppCompatTextView(context) {
             textColor = currentTextColor,
             typeface = tf,
             fontWeight = resolvedFontWeight,
+            barThicknessPxOverride = barPxOverride,
           )
           builder.setSpan(span, start, start + 1, 0)
         }

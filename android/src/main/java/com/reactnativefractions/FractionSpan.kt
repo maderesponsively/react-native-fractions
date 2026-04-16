@@ -21,6 +21,7 @@ class FractionSpan(
   private val textColor: Int,
   private val typeface: Typeface?,
   private val fontWeight: Int = 400,
+  private val barThicknessPxOverride: Float? = null,
 ) : ReplacementSpan() {
 
   private val fracPaint: TextPaint = TextPaint().apply {
@@ -50,7 +51,9 @@ class FractionSpan(
   private val barPaint: Paint = Paint().apply {
     isAntiAlias = true
     color = textColor
-    strokeWidth = max(1f, fracPaint.textSize * 0.06f)
+    strokeWidth =
+      barThicknessPxOverride?.coerceAtLeast(0.5f)
+        ?: max(1f, fracPaint.textSize * 0.06f)
     style = Paint.Style.STROKE
   }
 

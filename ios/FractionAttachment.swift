@@ -5,12 +5,20 @@ final class FractionAttachment: NSTextAttachment {
   private let denominator: String
   private let hostFont: UIFont
   private let textColor: UIColor
+  private let overrideBarWidth: CGFloat?
 
-  init(numerator: String, denominator: String, font: UIFont, color: UIColor) {
+  init(
+    numerator: String,
+    denominator: String,
+    font: UIFont,
+    color: UIColor,
+    overrideBarWidth: CGFloat? = nil
+  ) {
     self.numerator = numerator
     self.denominator = denominator
     self.hostFont = font
     self.textColor = color
+    self.overrideBarWidth = overrideBarWidth
     super.init(data: nil, ofType: nil)
     self.image = renderImage()
   }
@@ -49,7 +57,9 @@ final class FractionAttachment: NSTextAttachment {
     let numSize = numAttr.size()
     let denSize = denAttr.size()
     let gap: CGFloat = 1
-    let barWidth: CGFloat = max(1, fracFontSize * 0.06)
+    let barWidth: CGFloat =
+      overrideBarWidth.map { max(0.5, $0) }
+      ?? max(1, fracFontSize * 0.06)
     let sidePadding: CGFloat = 3
 
     let totalWidth = max(numSize.width, denSize.width) + sidePadding * 2

@@ -67,6 +67,42 @@ describe('FractionText (native registered)', () => {
     expect(props.onContentSizeChange).toBeDefined();
   });
 
+  it('forwards barThickness to the native component when provided', () => {
+    const runs = [
+      { type: 'fraction' as const, numerator: '1', denominator: '2' },
+    ];
+
+    act(() => {
+      TestRenderer.create(
+        <FractionText
+          runs={runs}
+          fontSize={16}
+          lineHeight={22}
+          color="#000"
+          barThickness={2.5}
+        />,
+      );
+    });
+
+    const props = mockNativeView.mock.calls.at(-1)?.[0];
+    expect(props.barThickness).toBe(2.5);
+  });
+
+  it('omits barThickness from the native component when not provided', () => {
+    const runs = [
+      { type: 'fraction' as const, numerator: '1', denominator: '2' },
+    ];
+
+    act(() => {
+      TestRenderer.create(
+        <FractionText runs={runs} fontSize={16} lineHeight={22} color="#000" />,
+      );
+    });
+
+    const props = mockNativeView.mock.calls.at(-1)?.[0];
+    expect(props.barThickness).toBeUndefined();
+  });
+
   it('debounces content-size updates within 0.5dp', () => {
     const runs = [{ type: 'text' as const, text: 'abc' }];
     let renderer!: TestRenderer.ReactTestRenderer;

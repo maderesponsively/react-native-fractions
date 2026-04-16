@@ -31,6 +31,7 @@ interface NativeViewProps {
   fontFamily?: string;
   fontWeight?: string;
   textAlign?: 'left' | 'center' | 'right';
+  barThickness?: number;
   onContentSizeChange?: (event: ContentSizeEvent) => void;
   style?: StyleProp<ViewStyle>;
 }
@@ -74,6 +75,13 @@ export interface FractionTextProps {
   /** Weight string, e.g. `"400"`, `"600"`, `"700"`. */
   fontWeight?: string;
   textAlign?: 'left' | 'center' | 'right';
+  /**
+   * Stroke thickness of the fraction rule (vinculum) in dp/pt. When omitted,
+   * the native side draws a rule at approximately 6% of the fraction font
+   * size, which is a good default for body text. Provide an absolute value
+   * (e.g. `2`) for a heavier rule or a thinner one (e.g. `0.5`).
+   */
+  barThickness?: number;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -94,6 +102,7 @@ export const FractionText: React.FC<FractionTextProps> = ({
   fontFamily,
   fontWeight,
   textAlign,
+  barThickness,
   style,
 }) => {
   const [contentHeight, setContentHeight] = useState<number | null>(null);
@@ -156,6 +165,7 @@ export const FractionText: React.FC<FractionTextProps> = ({
       fontFamily={fontFamily}
       fontWeight={fontWeight}
       textAlign={textAlign}
+      barThickness={barThickness}
       onContentSizeChange={handleContentSize}
       style={[
         styles.native,

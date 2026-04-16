@@ -10,6 +10,7 @@ RCT_EXPORT_VIEW_PROPERTY(color, UIColor)
 RCT_EXPORT_VIEW_PROPERTY(fontFamily, NSString)
 RCT_EXPORT_VIEW_PROPERTY(fontWeight, NSString)
 RCT_EXPORT_VIEW_PROPERTY(textAlign, NSString)
+RCT_EXPORT_VIEW_PROPERTY(barThickness, NSNumber)
 RCT_EXPORT_VIEW_PROPERTY(onContentSizeChange, RCTDirectEventBlock)
 
 @end

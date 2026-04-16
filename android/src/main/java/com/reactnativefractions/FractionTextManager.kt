@@ -51,6 +51,11 @@ class FractionTextManager : SimpleViewManager<FractionTextView>() {
     view.setTextAlignStr(value)
   }
 
+  @ReactProp(name = "barThickness")
+  fun setBarThickness(view: FractionTextView, value: Double) {
+    view.setBarThicknessDp(if (value > 0.0) value else null)
+  }
+
   override fun getExportedCustomDirectEventTypeConstants(): MutableMap<String, Any> {
     return mutableMapOf(
       "topContentSizeChange" to mutableMapOf<String, Any>(
