@@ -1,6 +1,18 @@
 # react-native-fractions
 
-Native **stacked fractions** for React Native — numerator over denominator with a horizontal rule, laid out by the platform text engine (iOS `NSTextAttachment`, Android `ReplacementSpan`). Each fraction is a single inline glyph: it uses your font, wraps with the rest of the line, and sits on the text baseline like ordinary characters.
+For React Native apps that show school-level maths, this library draws **stacked fractions** inline: a numerator, a horizontal rule, and a denominator, using the same font and colour as the surrounding sentence. They wrap and sit on the baseline like ordinary text—not a separate overlay or a hand-rolled SVG layout on top of `Text`.
+
+## What it looks like
+
+Below are real in-app screenshots (Science Shorts). Drag-and-drop tiles, headers, and answer buttons are your own UI; **react-native-fractions** only supplies the small stacked fraction inside the question copy.
+
+![Algebra question with a stacked fraction in the prompt line](./docs/readme/example-inverse-steps.png)
+
+*Inverse-function style prompt: the fraction sits in the sentence with the same typography as the words around it.*
+
+![Quadratic turning-point question with a stacked fraction in the formula](./docs/readme/example-turning-point.png)
+
+*Formula line showing **−b** over **2a** as an inline stacked fraction next to the rest of the text.*
 
 ## Why this library
 
@@ -38,6 +50,8 @@ Autolinking registers the package. No `MainApplication` changes on modern React 
 Rebuild the native app once after installing (`npx react-native run-ios` / `run-android`). Metro reload alone isn't enough because native code changed.
 
 ## Quick start
+
+Prefer pictures first? See [What it looks like](#what-it-looks-like).
 
 You only use `FractionText` for the specific text that contains a fraction. **The rest of your app stays as regular `<Text>`** — there's nothing global to opt into and no app-wide tokenizer to set up.
 

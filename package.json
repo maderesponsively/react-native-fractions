@@ -33,6 +33,7 @@
   "files": [
     "src",
     "lib",
+    "docs",
     "android",
     "ios",
     "react-native-fractions.podspec",
