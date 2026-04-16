@@ -6,13 +6,18 @@ For React Native apps that show school-level maths, this library draws **stacked
 
 Below are real in-app screenshots (Science Shorts). Drag-and-drop tiles, headers, and answer buttons are your own UI; **react-native-fractions** only supplies the small stacked fraction inside the question copy.
 
-![Algebra question with a stacked fraction in the prompt line](./docs/readme/example-inverse-steps.png)
-
-*Inverse-function style prompt: the fraction sits in the sentence with the same typography as the words around it.*
-
-![Quadratic turning-point question with a stacked fraction in the formula](./docs/readme/example-turning-point.png)
-
-*Formula line showing **−b** over **2a** as an inline stacked fraction next to the rest of the text.*
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="./docs/readme/example-inverse-steps.png" alt="Algebra question with a stacked fraction in the prompt line" width="240" />
+      <p><em>Inverse-function style prompt: the fraction sits in the sentence with the same typography as the words around it.</em></p>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="./docs/readme/example-turning-point.png" alt="Quadratic turning-point question with a stacked fraction in the formula" width="240" />
+      <p><em>Formula line showing <strong>−b</strong> over <strong>2a</strong> as an inline stacked fraction next to the rest of the text.</em></p>
+    </td>
+  </tr>
+</table>
 
 ## Why this library
 
