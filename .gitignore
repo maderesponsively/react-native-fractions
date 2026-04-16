@@ -1,0 +1,18 @@
+node_modules/
+coverage/
+lib/
+*.log
+.DS_Store
+
+# Android
+android/build/
+android/.gradle/
+.idea/
+*.iml
+
+# iOS
+ios/build/
+ios/Pods/
+ios/DerivedData/
+ios/*.xcworkspace
+ios/Podfile.lock
