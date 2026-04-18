@@ -24,6 +24,7 @@ Below are real in-app screenshots (Science Shorts). Drag-and-drop tiles, headers
 - **Inline with real text.** The fraction participates in line-breaking and baseline alignment, so it won't clip, overlap the next line, or float out of place on small screens.
 - **Uses your font.** Pass `fontFamily` / `fontWeight` and the fraction is rendered with the same typeface as the surrounding text.
 - **Zero layout math.** You don't need to wrap everything in `<View>` / `flexDirection`. Just drop it in where you'd use `<Text>`.
+- **Nested fractions, superscripts and subscripts.** Numerators and denominators can themselves contain fractions or raised/lowered scripts, so GCSE-style expressions like `25^(-3/2)` or `1 / 25^(-3/2)` render as true stacked glyphs with a shrunk stacked exponent — no MathJax, no WebView.
 
 ## Requirements
 
@@ -200,7 +201,75 @@ Bump the vinculum stroke with `barThickness` (see [Styling the bar](#styling-the
 />
 ```
 
-### 8. Turning a string like `"y = 24/6"` into runs (optional helper)
+### 8. Stacked exponent (`25^(-3/2)`)
+
+Since **0.3.0**, a `superscript` run can wrap any other runs — including a fraction — so `25` to the power of `-3/2` renders as the base with a shrunk stacked exponent sitting at superscript height:
+
+```tsx
+<FractionText
+  fontSize={22}
+  lineHeight={30}
+  color="#111"
+  runs={[
+    { type: 'text', text: '25' },
+    {
+      type: 'superscript',
+      content: [
+        { type: 'fraction', numerator: '-3', denominator: '2' },
+      ],
+    },
+  ]}
+/>
+```
+
+### 9. Fraction whose denominator carries a stacked exponent (`1 / 25^(-3/2)`)
+
+For expressions where the exponent grammatically binds to the denominator, use the optional `denominatorRuns` array (also new in **0.3.0**). Plain `numerator` / `denominator` strings are still populated as a fallback for older library versions; 0.3.0+ uses the structured arrays when present.
+
+```tsx
+<FractionText
+  fontSize={22}
+  lineHeight={30}
+  color="#111"
+  runs={[
+    {
+      type: 'fraction',
+      numerator: '1',
+      denominator: '25',
+      numeratorRuns: [{ type: 'text', text: '1' }],
+      denominatorRuns: [
+        { type: 'text', text: '25' },
+        {
+          type: 'superscript',
+          content: [
+            { type: 'fraction', numerator: '-3', denominator: '2' },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
+```
+
+### 10. Subscripts
+
+`subscript` is the lowered-baseline mirror of `superscript`. Handy for chemistry labels inside equations:
+
+```tsx
+<FractionText
+  fontSize={18}
+  lineHeight={24}
+  color="#111"
+  runs={[
+    { type: 'text', text: 'x' },
+    { type: 'subscript', content: [{ type: 'text', text: '1' }] },
+    { type: 'text', text: ' + x' },
+    { type: 'subscript', content: [{ type: 'text', text: '2' }] },
+  ]}
+/>
+```
+
+### 11. Turning a string like `"y = 24/6"` into runs (optional helper)
 
 If you'd rather write plain strings in your content and let code split out the fractions, drop this 10-line helper somewhere in your app. You don't have to use it — write your own parser if you prefer, or just build `runs` by hand.
 
@@ -269,23 +338,61 @@ Omit `barThickness` to keep the default, proportional behaviour.
 ### Run types
 
 ```ts
-type TextRun =     { type: 'text';     text: string }
-type FractionRun = { type: 'fraction'; numerator: string; denominator: string }
-type TokenRun = TextRun | FractionRun
+type TextRun = { type: 'text'; text: string }
+
+type FractionRun = {
+  type: 'fraction'
+  // Plain-string numerator / denominator — always populated,
+  // even when structured runs are provided, so older library
+  // versions render a legible fallback.
+  numerator: string
+  denominator: string
+  // Added in 0.3.0. When present, these override the string
+  // fields and may themselves contain fractions or scripts.
+  numeratorRuns?: TokenRun[]
+  denominatorRuns?: TokenRun[]
+}
+
+// Added in 0.3.0.
+type SuperscriptRun = { type: 'superscript'; content: TokenRun[] }
+type SubscriptRun   = { type: 'subscript';   content: TokenRun[] }
+
+type TokenRun = TextRun | FractionRun | SuperscriptRun | SubscriptRun
 ```
 
-Both `numerator` and `denominator` are plain strings, so signs, variables, and multi-character tokens all work.
+Everything added in 0.3.0 is **purely additive**: existing apps that emit only `TextRun` and string-based `FractionRun`s continue to render identically, no code changes required.
+
+Scripts are drawn at **65%** of the parent font size with the baseline raised (super) or lowered (sub) by ~`capHeight * 0.45`. Nested fractions inside a numerator, denominator or script scale to **75%** of the parent font size, so fractions-inside-fractions and stacked exponents stay visually balanced without manual font tuning.
 
 ### Fallback when native isn't linked
 
-If the native view isn't registered (usually: you installed the library but haven't rebuilt the app yet), `FractionText` renders a plain `<Text>` that joins each fraction as `numerator/denominator` and logs a single development-only warning. This keeps the screen usable while making the missing rebuild obvious in `__DEV__`. Release builds never warn.
+If the native view isn't registered (usually: you installed the library but haven't rebuilt the app yet), `FractionText` renders a plain `<Text>` that flattens each run and logs a single development-only warning:
+
+- `FractionRun` → `numerator/denominator` (walks `numeratorRuns` / `denominatorRuns` recursively when provided)
+- `SuperscriptRun` → `^(…)`
+- `SubscriptRun` → `_(…)`
+
+This keeps the screen usable while making the missing rebuild obvious in `__DEV__`. Release builds never warn.
 
 ## How it works
 
-- **iOS:** builds an `NSAttributedString` containing an `NSTextAttachment` per fraction, drawn into a `UIImage` aligned to the host font's x-height.
-- **Android:** builds a `SpannableStringBuilder` and draws each fraction via a custom `ReplacementSpan` that reports metrics so line height accounts for the two-row glyph.
+- **iOS:** builds an `NSAttributedString` containing an `NSTextAttachment` per fraction / script, drawn into a `UIImage` aligned to the host font's x-height. A recursive `FractionRenderer` composes nested runs (fraction-in-fraction, fraction-in-superscript) onto the same canvas before attaching, so everything remains a single inline glyph.
+- **Android:** builds a `SpannableStringBuilder` and draws each fraction or script via a custom `ReplacementSpan`. Measurement reports extra ascent/descent so line height accounts for two-row glyphs, and a shared `FractionRenderer` on `Canvas` handles the nested run tree.
 
 Both platforms read the host font's metrics (ascent, descent, x-height) so the fraction sits on the text baseline with the bar roughly through the middle of the x-height, regardless of which font you pass in.
+
+## Changelog
+
+### 0.3.0
+
+- **New run types:** `SuperscriptRun` and `SubscriptRun`. `content` may contain any other runs, including a `FractionRun` — enough to render a shrunk stacked exponent (`25^(-3/2)`) as a single inline glyph.
+- **Nested fractions:** `FractionRun` gained optional `numeratorRuns` / `denominatorRuns`. When present they override the string fields, so one side of a fraction can itself contain fractions or scripts. String `numerator` / `denominator` are still required and populated as a 0.2.x fallback.
+- Shared `FractionRenderer` on both platforms so every new shape uses the same measurement and layout code.
+- 100% backwards compatible: apps on 0.2.x upgrade without any code changes.
+
+### 0.2.0
+
+- Initial public release: inline stacked fractions on iOS and Android, `barThickness` prop, font + weight pass-through.
 
 ## License
 

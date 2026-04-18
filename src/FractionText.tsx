@@ -13,6 +13,35 @@ import {
 import type { TokenRun } from './types';
 
 /**
+ * Produces a readable string for a single {@link TokenRun} when the
+ * native component is missing. Supports the 0.3.0+ nested shapes:
+ * structured fraction sides flatten recursively to `num/den`, superscripts
+ * to `^(…)`, subscripts to `_(…)`. This is dev-only fallback text — it
+ * does not try to preserve layout, just make the content readable.
+ */
+const flattenRunForFallback = (run: TokenRun): string => {
+  if (run.type === 'text') {
+    return run.text;
+  }
+  if (run.type === 'fraction') {
+    const numStr = run.numeratorRuns
+      ? run.numeratorRuns.map(flattenRunForFallback).join('')
+      : run.numerator;
+    const denStr = run.denominatorRuns
+      ? run.denominatorRuns.map(flattenRunForFallback).join('')
+      : run.denominator;
+    return `${numStr}/${denStr}`;
+  }
+  if (run.type === 'superscript') {
+    return `^(${run.content.map(flattenRunForFallback).join('')})`;
+  }
+  if (run.type === 'subscript') {
+    return `_(${run.content.map(flattenRunForFallback).join('')})`;
+  }
+  return '';
+};
+
+/**
  * Native view name registered on iOS (`FractionTextManager`) and Android
  * (`FractionTextManager`).
  */
@@ -132,11 +161,7 @@ export const FractionText: React.FC<FractionTextProps> = ({
   }, []);
 
   if (!NativeView) {
-    const flattened = runs
-      .map(run =>
-        run.type === 'text' ? run.text : `${run.numerator}/${run.denominator}`,
-      )
-      .join('');
+    const flattened = runs.map(flattenRunForFallback).join('');
     return (
       <RNText
         style={[

@@ -1,6 +1,6 @@
 {
   "name": "react-native-fractions",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Native stacked fractions for React Native (inline text layout on iOS and Android)",
   "source": "src/index.ts",
   "main": "lib/commonjs/index.js",

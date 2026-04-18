@@ -4,19 +4,19 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
-import android.os.Build
-import android.text.TextPaint
 import android.text.style.ReplacementSpan
-import android.util.Log
 import kotlin.math.ceil
-import kotlin.math.max
 
 /**
- * Stacked fraction span: numerator, vinculum, denominator inline with host text.
+ * Stacked fraction span: numerator, vinculum, denominator inline with host
+ * text. Accepts either plain `numerator` / `denominator` strings
+ * (library schema `< 0.3.0`, unchanged behaviour) or structured run trees
+ * (library schema 0.3.0+, so numerator or denominator may itself contain
+ * nested fractions or raised/lowered scripts).
  */
-class FractionSpan(
-  private val numerator: String,
-  private val denominator: String,
+class FractionSpan internal constructor(
+  private val numeratorRuns: List<RunNode>,
+  private val denominatorRuns: List<RunNode>,
   private val hostTextSizePx: Float,
   private val textColor: Int,
   private val typeface: Typeface?,
@@ -24,50 +24,37 @@ class FractionSpan(
   private val barThicknessPxOverride: Float? = null,
 ) : ReplacementSpan() {
 
-  private val fracPaint: TextPaint = TextPaint().apply {
-    isAntiAlias = true
-    textSize = hostTextSizePx * 0.75f
-    color = textColor
-  }
+  /**
+   * Backwards-compatible constructor (library schema `< 0.3.0`). Wraps the
+   * strings as single-element {@link RunNode.Text} lists and delegates to
+   * the primary constructor so older call sites compile unchanged.
+   */
+  constructor(
+    numerator: String,
+    denominator: String,
+    hostTextSizePx: Float,
+    textColor: Int,
+    typeface: Typeface?,
+    fontWeight: Int = 400,
+    barThicknessPxOverride: Float? = null,
+  ) : this(
+    numeratorRuns = listOf(RunNode.Text(numerator)),
+    denominatorRuns = listOf(RunNode.Text(denominator)),
+    hostTextSizePx = hostTextSizePx,
+    textColor = textColor,
+    typeface = typeface,
+    fontWeight = fontWeight,
+    barThicknessPxOverride = barThicknessPxOverride,
+  )
 
-  init {
-    if (typeface != null) {
-      fracPaint.typeface =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-          Typeface.create(typeface, fontWeight, false)
-        } else {
-          typeface
-        }
-    }
-    if (BuildConfig.DEBUG) {
-      Log.d(
-        "FractionText",
-        "FractionSpan typeface=$typeface weight=$fontWeight " +
-          "applied=${fracPaint.typeface}",
-      )
-    }
-  }
+  private val fractionNode = RunNode.Fraction(
+    numerator = numeratorRuns,
+    denominator = denominatorRuns,
+    numeratorString = "",
+    denominatorString = "",
+  )
 
-  private val barPaint: Paint = Paint().apply {
-    isAntiAlias = true
-    color = textColor
-    strokeWidth =
-      barThicknessPxOverride?.coerceAtLeast(0.5f)
-        ?: max(1f, fracPaint.textSize * 0.06f)
-    style = Paint.Style.STROKE
-  }
-
-  private val gap: Float = max(1f, fracPaint.textSize * 0.08f)
-  private val sidePadding: Float = fracPaint.textSize * 0.2f
   private val xRect = Rect()
-
-  private fun cellWidth(): Float {
-    val numW = fracPaint.measureText(numerator)
-    val denW = fracPaint.measureText(denominator)
-    return max(numW, denW)
-  }
-
-  private fun totalWidth(): Float = cellWidth() + sidePadding * 2
 
   private fun approximateXHeight(hostPaint: Paint): Float {
     hostPaint.getTextBounds("x", 0, 1, xRect)
@@ -83,22 +70,25 @@ class FractionSpan(
     end: Int,
     fm: Paint.FontMetricsInt?,
   ): Int {
+    val metrics = FractionRenderer.measureRun(
+      fractionNode,
+      hostTextSizePx,
+      typeface,
+      fontWeight,
+      barThicknessPxOverride,
+    )
     if (fm != null) {
-      val fracFm = fracPaint.fontMetricsInt
-      val fracLineHeight = (fracFm.descent - fracFm.ascent).toFloat()
-      val barStroke = barPaint.strokeWidth
-      val halfStack = fracLineHeight + gap + barStroke / 2f
+      val hostFm = paint.fontMetricsInt
       val xHeight = approximateXHeight(paint)
       val midline = -xHeight / 2f
-      val neededAscent = ceil(-midline + halfStack).toInt()
-      val neededDescent = ceil(midline + halfStack).toInt()
-      val hostFm = paint.fontMetricsInt
+      val neededAscent = ceil(-midline + metrics.ascent - xHeight / 2f).toInt()
+      val neededDescent = ceil(midline + metrics.descent + xHeight / 2f).toInt()
       fm.ascent = minOf(hostFm.ascent, -neededAscent)
       fm.top = minOf(hostFm.top, fm.ascent)
       fm.descent = maxOf(hostFm.descent, neededDescent)
       fm.bottom = maxOf(hostFm.bottom, fm.descent)
     }
-    return ceil(totalWidth()).toInt()
+    return ceil(metrics.width).toInt()
   }
 
   override fun draw(
@@ -112,23 +102,16 @@ class FractionSpan(
     bottom: Int,
     paint: Paint,
   ) {
-    val numW = fracPaint.measureText(numerator)
-    val denW = fracPaint.measureText(denominator)
-    val cellW = max(numW, denW)
-
-    val fracFm = fracPaint.fontMetrics
-    val barY = y.toFloat() - approximateXHeight(paint) / 2f
-
-    val numBaseline = barY - gap - fracFm.descent
-    val numX = x + sidePadding + (cellW - numW) / 2f
-    canvas.drawText(numerator, numX, numBaseline, fracPaint)
-
-    val barStart = x + sidePadding * 0.5f
-    val barEnd = x + sidePadding * 1.5f + cellW
-    canvas.drawLine(barStart, barY, barEnd, barY, barPaint)
-
-    val denBaseline = barY + gap - fracFm.ascent
-    val denX = x + sidePadding + (cellW - denW) / 2f
-    canvas.drawText(denominator, denX, denBaseline, fracPaint)
+    FractionRenderer.drawRun(
+      canvas = canvas,
+      run = fractionNode,
+      x = x,
+      baselineY = y.toFloat(),
+      hostTextSizePx = hostTextSizePx,
+      typeface = typeface,
+      fontWeight = fontWeight,
+      textColor = textColor,
+      barThicknessPxOverride = barThicknessPxOverride,
+    )
   }
 }

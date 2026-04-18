@@ -114,25 +114,57 @@ public class FractionTextView: UIView {
       .paragraphStyle: paragraph,
     ]
 
+    let overrideBarWidth: CGFloat? =
+      barThickness.map { CGFloat(truncating: $0) }
+
     let result = NSMutableAttributedString()
     for raw in runs {
       guard let dict = raw as? [String: Any],
             let type = dict["type"] as? String else { continue }
-      if type == "text" {
+      switch type {
+      case "text":
         let text = dict["text"] as? String ?? ""
         if text.isEmpty { continue }
         result.append(NSAttributedString(string: text, attributes: baseAttributes))
-      } else if type == "fraction" {
+      case "fraction":
+        let numeratorRuns = dict["numeratorRuns"] as? [Any]
+        let denominatorRuns = dict["denominatorRuns"] as? [Any]
         let numerator = dict["numerator"] as? String ?? ""
         let denominator = dict["denominator"] as? String ?? ""
-        let overrideBarWidth: CGFloat? =
-          barThickness.map { CGFloat(truncating: $0) }
-        let attachment = FractionAttachment(
-          numerator: numerator,
-          denominator: denominator,
+        let attachment: FractionAttachment
+        if numeratorRuns != nil || denominatorRuns != nil {
+          attachment = FractionAttachment(
+            numeratorRuns: numeratorRuns
+              ?? [["type": "text", "text": numerator]],
+            denominatorRuns: denominatorRuns
+              ?? [["type": "text", "text": denominator]],
+            font: font,
+            color: textColor,
+            overrideBarWidth: overrideBarWidth
+          )
+        } else {
+          attachment = FractionAttachment(
+            numerator: numerator,
+            denominator: denominator,
+            font: font,
+            color: textColor,
+            overrideBarWidth: overrideBarWidth
+          )
+        }
+        let attr = NSMutableAttributedString(attachment: attachment)
+        attr.addAttributes(
+          baseAttributes,
+          range: NSRange(location: 0, length: attr.length)
+        )
+        result.append(attr)
+      case "superscript", "subscript":
+        let content = dict["content"] as? [Any] ?? []
+        let attachment = ScriptAttachment(
+          runs: content,
           font: font,
           color: textColor,
-          overrideBarWidth: overrideBarWidth
+          barWidth: overrideBarWidth,
+          kind: type == "superscript" ? .superscript : .subscript
         )
         let attr = NSMutableAttributedString(attachment: attachment)
         attr.addAttributes(
@@ -140,6 +172,8 @@ public class FractionTextView: UIView {
           range: NSRange(location: 0, length: attr.length)
         )
         result.append(attr)
+      default:
+        continue
       }
     }
 

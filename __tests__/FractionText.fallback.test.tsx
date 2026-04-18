@@ -41,6 +41,75 @@ describe('FractionText (native missing fallback)', () => {
     expect(JSON.stringify(json)).toContain('x = 1/2 done');
   });
 
+  it('flattens nested numeratorRuns / denominatorRuns recursively', () => {
+    const runs = [
+      {
+        type: 'fraction' as const,
+        numerator: '1',
+        denominator: '25',
+        numeratorRuns: [{ type: 'text' as const, text: '1' }],
+        denominatorRuns: [
+          { type: 'text' as const, text: '25' },
+          {
+            type: 'superscript' as const,
+            content: [
+              { type: 'fraction' as const, numerator: '-3', denominator: '2' },
+            ],
+          },
+        ],
+      },
+    ];
+
+    let tree!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      tree = TestRenderer.create(
+        <FractionText runs={runs} fontSize={16} lineHeight={22} color="#000" />,
+      );
+    });
+
+    expect(JSON.stringify(tree.toJSON())).toContain('1/25^(-3/2)');
+  });
+
+  it('flattens top-level superscript runs with the ^() fallback', () => {
+    const runs = [
+      { type: 'text' as const, text: '25' },
+      {
+        type: 'superscript' as const,
+        content: [
+          { type: 'fraction' as const, numerator: '-3', denominator: '2' },
+        ],
+      },
+    ];
+
+    let tree!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      tree = TestRenderer.create(
+        <FractionText runs={runs} fontSize={16} lineHeight={22} color="#000" />,
+      );
+    });
+
+    expect(JSON.stringify(tree.toJSON())).toContain('25^(-3/2)');
+  });
+
+  it('flattens top-level subscript runs with the _() fallback', () => {
+    const runs = [
+      { type: 'text' as const, text: 'x' },
+      {
+        type: 'subscript' as const,
+        content: [{ type: 'text' as const, text: '1' }],
+      },
+    ];
+
+    let tree!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      tree = TestRenderer.create(
+        <FractionText runs={runs} fontSize={16} lineHeight={22} color="#000" />,
+      );
+    });
+
+    expect(JSON.stringify(tree.toJSON())).toContain('x_(1)');
+  });
+
   it('does not warn in production (__DEV__=false)', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     act(() => {

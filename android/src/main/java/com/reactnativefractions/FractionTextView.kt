@@ -200,6 +200,10 @@ class FractionTextView(context: Context) : AppCompatTextView(context) {
           "tf=$tf runs=${currentRuns.size()}",
       )
     }
+    val density = resources.displayMetrics.density
+    val barPxOverride: Float? = barThicknessDp
+      ?.takeIf { it > 0.0 }
+      ?.let { (it * density).toFloat() }
     for (i in 0 until currentRuns.size()) {
       val map: ReadableMap = currentRuns.getMap(i) ?: continue
       val type = map.getString("type") ?: continue
@@ -213,22 +217,37 @@ class FractionTextView(context: Context) : AppCompatTextView(context) {
           }
         }
         "fraction" -> {
-          val num = map.getString("numerator") ?: ""
-          val den = map.getString("denominator") ?: ""
+          val node = RunNodeParser.parseMap(map) as? RunNode.Fraction ?: continue
           val start = builder.length
           builder.append("\uFFFC")
-          val density = resources.displayMetrics.density
-          val barPxOverride: Float? = barThicknessDp
-            ?.takeIf { it > 0.0 }
-            ?.let { (it * density).toFloat() }
           val span = FractionSpan(
-            numerator = num,
-            denominator = den,
+            numeratorRuns = node.numerator,
+            denominatorRuns = node.denominator,
             hostTextSizePx = textSize,
             textColor = currentTextColor,
             typeface = tf,
             fontWeight = resolvedFontWeight,
             barThicknessPxOverride = barPxOverride,
+          )
+          builder.setSpan(span, start, start + 1, 0)
+        }
+        "superscript", "subscript" -> {
+          val node = RunNodeParser.parseMap(map) ?: continue
+          val content = when (node) {
+            is RunNode.Superscript -> node.content
+            is RunNode.Subscript -> node.content
+            else -> continue
+          }
+          val start = builder.length
+          builder.append("\uFFFC")
+          val span = ScriptReplacementSpan(
+            content = content,
+            hostTextSizePx = textSize,
+            textColor = currentTextColor,
+            typeface = tf,
+            fontWeight = resolvedFontWeight,
+            barThicknessPxOverride = barPxOverride,
+            raise = type == "superscript",
           )
           builder.setSpan(span, start, start + 1, 0)
         }

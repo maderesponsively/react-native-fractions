@@ -21,6 +21,8 @@ describe('package entry', () => {
   it('type-only exports do not leak runtime values', () => {
     expect(pkg.TextRun).toBeUndefined();
     expect(pkg.FractionRun).toBeUndefined();
+    expect(pkg.SuperscriptRun).toBeUndefined();
+    expect(pkg.SubscriptRun).toBeUndefined();
     expect(pkg.TokenRun).toBeUndefined();
   });
 });
